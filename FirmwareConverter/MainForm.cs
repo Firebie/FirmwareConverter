@@ -17,9 +17,13 @@ namespace FirmwareConverter
 {
   public partial class MainForm : RadForm
   {
+    string _text;
+
     public MainForm(string fileName)
     {
       InitializeComponent();
+
+      _text = Text;
 
       if (File.Exists(fileName))
         ReadDatFile(fileName);
@@ -51,12 +55,16 @@ namespace FirmwareConverter
 
     void ReadDatFile(string fileName)
     {
+      Text = _text;
+
       _datFile = fileName;
       _folder = Path.GetDirectoryName(_datFile);
 
       _items = ReadFirmwares(_datFile);
 
       _gItems.DataSource = _items;
+
+      Text = "{0}: {1}".FormatWith(_text, fileName);
     }
 
     List<Firmware> ReadFirmwares(string fileName)
@@ -239,7 +247,14 @@ namespace FirmwareConverter
         {
           var binFileName = dlg.FileName;
 
-          var catalogNo = Path.GetFileNameWithoutExtension(binFileName).Replace(".{0}".FormatWith(fileType), string.Empty);
+          var binFileNameOnly = Path.GetFileNameWithoutExtension(binFileName);
+
+          var catalogNo = string.Empty;
+          var dotPos = binFileNameOnly.IndexOf('.');
+          if (dotPos >= 0)
+            catalogNo = binFileNameOnly.Substring(0, dotPos);
+          else
+            throw new ApplicationException("Can't identify firmware from file name '{0}'".FormatWith(binFileName));
 
           var item = _items.FirstOrDefault(i => i.CatalogNo == catalogNo);
           if (item == null)
