@@ -43,6 +43,7 @@
       this._btnCalibrationsToWinKFP = new Telerik.WinControls.UI.RadButton();
       this._btnClose = new Telerik.WinControls.UI.RadButton();
       this._btnFullToWinKFP = new Telerik.WinControls.UI.RadButton();
+      this._miAbout = new Telerik.WinControls.UI.RadMenuItem();
       ((System.ComponentModel.ISupportInitialize)(this.radMenu1)).BeginInit();
       ((System.ComponentModel.ISupportInitialize)(this._gItems)).BeginInit();
       ((System.ComponentModel.ISupportInitialize)(this._gItems.MasterTemplate)).BeginInit();
@@ -57,7 +58,8 @@
       // radMenu1
       // 
       this.radMenu1.Items.AddRange(new Telerik.WinControls.RadItem[] {
-            this._miFile});
+            this._miFile,
+            this._miAbout});
       this.radMenu1.Location = new System.Drawing.Point(0, 0);
       this.radMenu1.Name = "radMenu1";
       this.radMenu1.Size = new System.Drawing.Size(565, 20);
@@ -178,6 +180,12 @@
       this._btnFullToWinKFP.Text = "Full to WinKFP";
       this._btnFullToWinKFP.Click += new System.EventHandler(this._btnFullToWinKFP_Click);
       // 
+      // _miAbout
+      // 
+      this._miAbout.Name = "_miAbout";
+      this._miAbout.Text = "A&bout";
+      this._miAbout.Click += new System.EventHandler(this._miAbout_Click);
+      // 
       // MainForm
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -224,6 +232,7 @@
     private Telerik.WinControls.UI.RadButton _btnCalibrationsToWinKFP;
     private Telerik.WinControls.UI.RadButton _btnClose;
     private Telerik.WinControls.UI.RadButton _btnFullToWinKFP;
+    private Telerik.WinControls.UI.RadMenuItem _miAbout;
   }
 }
 

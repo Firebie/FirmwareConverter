@@ -352,5 +352,11 @@ namespace FirmwareConverter
 
       return result;
     }
+
+    private void _miAbout_Click(object sender, EventArgs e)
+    {
+      using (var form = new AboutForm())
+        form.ShowDialog();
+    }
   }
 }
