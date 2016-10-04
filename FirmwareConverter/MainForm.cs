@@ -43,7 +43,7 @@ namespace FirmwareConverter
     {
       using (var dlg = new OpenFileDialog())
       {
-        dlg.Filter          = "MS42/MS43 data(MDS42.DAT,MDS43.DAT)|MDS42.DAT;MDS43.DAT";
+        dlg.Filter          = "MS43 data(MDS43.DAT)|MDS43.DAT";
         dlg.CheckFileExists = true;
 
         if (dlg.ShowDialog() == DialogResult.OK)
@@ -140,7 +140,13 @@ namespace FirmwareConverter
     List<byte> ReadFile(string fileName)
     {
       var lines = File.ReadAllLines(fileName);
-      var bytes = new List<byte>();
+
+      var bytes = new byte[0xFFFFFF];
+      for (var i = 0; i < bytes.Length; ++i)
+        bytes[i] = 0xFF;
+
+      var baseAddress = 0;
+
       foreach (var line in lines)
       {
         if (line.StartsWith(":", StringComparison.InvariantCultureIgnoreCase))
@@ -148,8 +154,14 @@ namespace FirmwareConverter
           var length  = ConvertHexToInt(line.Substring(1, 2));
           var address = ConvertHexToInt(line.Substring(3, 4));
           var type    = ConvertHexToInt(line.Substring(7, 2));
+
+          if (type == 0x02)
+          {
+            var offset  = ConvertHexToInt(line.Substring(9, 4));
+            baseAddress = offset * 0x10;
+          }
           
-          if (type != 0)
+          if (type != 0x00 && type != 0x10)
             continue;
 
           var data = line.Substring(9, length * 2);
@@ -158,12 +170,12 @@ namespace FirmwareConverter
             var hex  = data.Substring(i * 2, 2);
             var value = (byte)ConvertHexToInt(hex);
 
-            bytes.Add(value);
+            bytes[baseAddress + address + i] = value;
           }
         }
       }
 
-      return bytes;
+      return new List<byte>(bytes);
     }
 
     List<byte> GetCalibrations(Firmware item)
@@ -171,11 +183,7 @@ namespace FirmwareConverter
       var fileName = "O{0}.0{1}".FormatWith(item.CalibrationNo.Substring(StringOrigin.Begin, 7), item.CalibrationNo.Substring(StringOrigin.End, 2));
       var fullFileName = "{0}{1}{2}".FormatWith(_folder, Path.DirectorySeparatorChar, fileName);
 
-      var bytes = ReadFile(fullFileName);
-
-      var emptyLength = 0x10000 - bytes.Count;
-      for (var i = 0; i < emptyLength; ++i)
-        bytes.Add(255);
+      var bytes = ReadFile(fullFileName).GetRange(0x70000, 0x10000);
 
       return bytes;
     }
@@ -187,19 +195,15 @@ namespace FirmwareConverter
       var fileName = "{0}A.0PA".FormatWith(item.HardwareNo);
       var fullFileName = "{0}{1}{2}".FormatWith(_folder, Path.DirectorySeparatorChar, fileName);
 
-      var bytes = ReadFile(fullFileName);
+      var full = new List<byte>();
+      for (var i = 0; i < 0x10000; ++i)
+        full.Add(0xFF);
 
-      var emptyLength = 0x70000 - bytes.Count;
-      for (var i = 0; i < emptyLength; ++i)
-        bytes.Add(255);
+      full.AddRange(ReadFile(fullFileName).GetRange(0x90000, 0x60000));
 
-      bytes.AddRange(calibrations);
+      full.AddRange(calibrations);
 
-      emptyLength = 0x80000 - bytes.Count;
-      for (var i = 0; i < emptyLength; ++i)
-        bytes.Add(255);
-
-      return bytes;
+      return full;
     }
 
     private void _btnClose_Click(object sender, EventArgs e)
@@ -315,14 +319,27 @@ namespace FirmwareConverter
 
     List<string> ReadFile(string binFileName, string winkfpFileName, int expectedLength)
     {
-      var binBytes = File.ReadAllBytes(binFileName);
-      if (binBytes.Length != expectedLength)
+      var binBytes = File.ReadAllBytes(binFileName).ToList();
+      if (binBytes.Count != expectedLength)
         throw new ApplicationException("File '{0}' has wrong size (expected {1} bytes)".FormatWith(binFileName, expectedLength));
+
+      var data = new byte[0xFFFFFF];
+      
+      if (expectedLength == 524288)
+      {
+        binBytes.CopyTo(0x10000, data, 0x90000, 0x60000);
+      }
+      else
+      {
+        binBytes.CopyTo(0, data, 0x70000, 0x10000);
+      }
 
       var lines = File.ReadAllLines(winkfpFileName);
       var result = new List<string>();
 
-      var index = 0;
+      var baseAddress = 0;
+
+      var bytes = new List<byte>();
       foreach (var line in lines)
       {
         if (!line.StartsWith(":", StringComparison.InvariantCultureIgnoreCase))
@@ -333,19 +350,26 @@ namespace FirmwareConverter
         {
           var length  = ConvertHexToInt(line.Substring(1, 2));
           var address = ConvertHexToInt(line.Substring(3, 4));
-          var type    = ConvertHexToInt(line.Substring(7, 2));
-          
-          if (type != 0)
+          var typeText = line.Substring(7, 2);
+          var type    = ConvertHexToInt(typeText);
+      
+          if (type == 0x02)
+          {
+            var offset  = ConvertHexToInt(line.Substring(9, 4));
+            baseAddress = offset * 0x10;
+          }
+
+          if (type != 0x00 && type != 0x10)
           {
             result.Add(line);
             continue;
           }
 
-          var bytes = binBytes.SubArray(index, length);
+          bytes.Clear();
+          for (var i = 0; i < length; ++i)
+            bytes.Add(data[baseAddress + address + i]);
 
-          index += length;
-
-          var text = "{0}{1}{2}".FormatWith(line.Substring(0, 9), bytes.ToHexString(), "00");
+          var text = "{0}{1}{2}".FormatWith(line.Substring(0, 9), bytes.ToArray().ToHexString(), typeText);
           result.Add(text);
         }
       }

@@ -76,6 +76,7 @@
     </Compile>
     <Compile Include="ArrayExtensions.cs" />
     <Compile Include="BusinessLogic\Firmware.cs" />
+    <Compile Include="BusinessLogic\Module.cs" />
     <Compile Include="BusinessLogic\NcsDummy.Classes.Checksums\Crc16.cs" />
     <Compile Include="BusinessLogic\NcsDummy.Classes.Checksums\Mod36.cs" />
     <Compile Include="BusinessLogic\NcsDummy.Classes.Nfs.Lines\CommentLine.cs" />
